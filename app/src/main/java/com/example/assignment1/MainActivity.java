@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.hardware.SensorListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,6 +14,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, SensorEventListener {
     private SensorManager sensorManager;
@@ -22,7 +26,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     float alpha = (float) 0.98;
     private EditText editTextPitchG, editTextRollG, editTextYaw;
     private TextView textViewPitch, textViewRoll, textViewYaw;
-    private Button sensorButton;
+    private Button sensorButton, stopButton;
     private long gTimestamp = 0;
     private float pitchAcc, rollAcc, yawMag;
     private float acclx = 0, accly = 0, acclz = 0;
@@ -50,7 +54,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         textViewYaw = (TextView) findViewById(R.id.textViewYaw);
 
         sensorButton = (Button) findViewById(R.id.sensorButton);
+        stopButton = (Button) findViewById(R.id.stopButton);
         sensorButton.setOnClickListener(this);
+        stopButton.setOnClickListener(this);
     }
 
 
@@ -61,7 +67,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
                 sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
                 sensorManager.registerListener(this, magnetometer,SensorManager.SENSOR_DELAY_FASTEST);
+                sensorButton.setVisibility(View.GONE);
+                stopButton.setVisibility(View.VISIBLE);
                 break;
+            case R.id.stopButton:
+                sensorButton.setVisibility(View.VISIBLE);
+                stopButton.setVisibility(View.GONE);
+                sensorManager.unregisterListener(this, accelerometer);
+                sensorManager.unregisterListener(this, gyroscope);
+                sensorManager.unregisterListener(this, magnetometer);
         }
     }
 
@@ -126,9 +140,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         // Filter Results
-        gyrox = (alpha * gyrox) + ((1 - alpha) * pitchAcc);
-        gyroy = (alpha * gyroy) + ((1 - alpha) * rollAcc);
-        gyroz = (alpha * gyroz) + ((1 - alpha) * yawMag);
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
+        gyrox = Float.parseFloat(df.format((alpha * gyrox) + ((1 - alpha) * pitchAcc)));
+        gyroy = Float.parseFloat(df.format((alpha * gyroy) + ((1 - alpha) * rollAcc)));
+        gyroz = Float.parseFloat(df.format((alpha * gyroz) + ((1 - alpha) * yawMag)));
 
         DisplayUI myDisplay = new DisplayUI(gyrox, gyroy, gyroz);
         myHandler.post(myDisplay);
@@ -148,14 +164,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         sensorManager.unregisterListener(this, accelerometer);
         sensorManager.unregisterListener(this, gyroscope);
         sensorManager.unregisterListener(this, magnetometer);
+        sensorButton.setVisibility(View.VISIBLE);
+        stopButton.setVisibility(View.GONE);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+        //sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        //sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+        //sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     private class DisplayUI implements Runnable{
